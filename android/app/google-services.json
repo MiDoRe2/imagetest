@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "204824074701",
+    "project_id": "durilastfinal",
+    "storage_bucket": "durilastfinal.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204824074701:android:e64e628d4ef97a7a7a8c84",
+        "android_client_info": {
+          "package_name": "com.example.lastduri"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "204824074701-cro2jgs4tsbmfe1f82rsojd4308rqe9a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADgPwgykUubb9Y8_0e0BW66Q2LHQMznws"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "204824074701-cro2jgs4tsbmfe1f82rsojd4308rqe9a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
