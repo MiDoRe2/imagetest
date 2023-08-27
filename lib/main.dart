@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:logger/logger.dart';
 import 'firebase_options.dart';
 import 'package:get/get.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 var user;
 var uid;
@@ -223,6 +224,10 @@ class _MyImageUploaderState extends State<MyImageUploader> {
       String downloadURL = await ref.getDownloadURL();
 
       //----------------------여기서 downloadURL을 Firebase Database에 업로드해야함--------------------------------------
+      FirebaseDatabase _realtime = FirebaseDatabase.instance;
+      await _realtime.ref("users")
+      .child(uid)
+      .set(_TestModel(uid, downloadURL).toJson());
 
       // 업로드가 완료되면 상태를 업데이트하여 이미지를 보여줌
       setState(() {
@@ -287,4 +292,19 @@ class _MyImageUploaderState extends State<MyImageUploader> {
   }
 }
 
+//Json 파싱이 가능하도록 만든 데이터 모델
+class _TestModel{
+  final String uid;
+  final String downloadURL;
 
+  _TestModel(this.uid, this.downloadURL);
+
+  Map<String, dynamic> toJson(){
+    return {
+      "uid" : uid,
+      "downloadURL" : downloadURL,
+    };
+  }
+}
+//cloud_firestore를 import한 후 Timestamp 객체를 사용하는 시도 필요
+//https://github.com/MiDoRe2/chatting_app/blob/master/lib/model/message_model.dart 참고
