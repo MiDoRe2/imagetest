@@ -9,15 +9,20 @@ import 'package:logger/logger.dart';
 import 'firebase_options.dart';
 import 'package:get/get.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:math';
 
 var user;
 var uid;
+String room = Random().nextInt(100000).toString().padLeft(5,'0');
+String _inputText = '';
+
 
 Future<void> main() async{
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  logger.e(room);
   runApp(const MyApp());
 }
 
@@ -30,7 +35,7 @@ Future<void> signInWithAnonymous() async {
   UserCredential _credential = await _firebaseAuth.signInAnonymously();
   if (_credential.user != null) {
     logger.e(_credential.user!.uid);
-    Get.to(MyImageUploader());
+    Get.to(LinkPage());
   }
 }
 
@@ -78,7 +83,7 @@ Future<void> SignWithEmail(String em, String pw) async {
       user = _credential.user;
       uid = _credential.user!.uid;
       print(uid);
-      Get.to(MyImageUploader());
+      Get.to(LinkPage());
     } else {
       print('Server Error');
     }
@@ -202,6 +207,9 @@ class _MyImageUploaderState extends State<MyImageUploader> {
   final picker = ImagePicker();
 
   Future<void> _uploadImage() async {
+    DateTime dt = DateTime.now();
+    int timestamp = dt.millisecondsSinceEpoch;
+
     if (_imageFile == null) {
       // 이미지 파일이 없는 경우 아무 작업도 수행하지 않음
       return;
@@ -225,8 +233,10 @@ class _MyImageUploaderState extends State<MyImageUploader> {
 
       //----------------------여기서 downloadURL을 Firebase Database에 업로드해야함--------------------------------------
       FirebaseDatabase _realtime = FirebaseDatabase.instance;
-      await _realtime.ref("users")
-      .child(uid)
+      await _realtime.ref()
+      .child("rooms")
+      .child(room)
+      .child(timestamp.toString())
       .set(_TestModel(uid, downloadURL).toJson());
 
       // 업로드가 완료되면 상태를 업데이트하여 이미지를 보여줌
@@ -262,6 +272,7 @@ class _MyImageUploaderState extends State<MyImageUploader> {
       // 선택한 이미지 파일을 상태에 저장
       if (pickedFile != null) {
         _imageFile = File(pickedFile.path);
+        _uploadImage();// 선택한 이미지를 Firebase Storage에 업로드
       } else {
         print('이미지 선택 취소');
       }
@@ -283,7 +294,6 @@ class _MyImageUploaderState extends State<MyImageUploader> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _pickImage(); // 갤러리에서 이미지를 선택
-          _uploadImage();// 선택한 이미지를 Firebase Storage에 업로드
         },
         tooltip: '이미지 선택',
         child: Icon(Icons.add_a_photo),
@@ -308,3 +318,115 @@ class _TestModel{
 }
 //cloud_firestore를 import한 후 Timestamp 객체를 사용하는 시도 필요
 //https://github.com/MiDoRe2/chatting_app/blob/master/lib/model/message_model.dart 참고
+
+class LinkPage extends StatefulWidget {
+  const LinkPage({Key? key}) : super(key: key);
+
+  @override
+  State<LinkPage> createState() => _LinkPageState();
+}
+
+class _LinkPageState extends State<LinkPage> {
+  TextEditingController _textEditingController = TextEditingController();
+
+
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    super.dispose();
+  }
+
+  Future<void> MakeRoom() async {
+
+    while(await checkForDuplicate(room)){
+      room = Random().nextInt(100000).toString().padLeft(5,'0');
+    }
+    Get.to(MyImageUploader());
+  }
+
+  Future<void> LinkRoom() async{
+    if(await checkForDuplicate(_inputText)){
+      //쿼리에 있는지 검사
+      room = _inputText;
+      Get.to(MyImageUploader());
+    }
+    else{
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text('연결 오류'),
+          content: Text('방이 없습니다. 다시 시도해주세요.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('확인'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<bool> checkForDuplicate(String roomName) async {
+    DatabaseReference _realtime = FirebaseDatabase.instance.ref('rooms');
+    try {
+      // Firebase 데이터베이스에서 해당 경로의 값을 가져옵니다.
+      DataSnapshot snapshot = (await _realtime.child(roomName).get());
+
+      if (snapshot.value != null) {
+        // 값이 존재하면 중복됨
+        return true;
+      } else {
+        // 값이 없으면 중복되지 않음
+        return false;
+      }
+    } catch (e) {
+      print('오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('연결코드 입력/생성'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            TextField(
+              controller: _textEditingController,
+              decoration: InputDecoration(
+                labelText: '연결코드 입력',
+              ),
+              onChanged: (text){
+                setState(() {
+                  _inputText = text;
+                });
+              },
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ElevatedButton(
+                  onPressed: MakeRoom,
+                  child: Text('방 만들기'),
+                ),
+                SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: LinkRoom,
+                  child: Text('방 들어가기'),
+                ),
+              ],
+            )
+          ],
+        )
+      ),
+    );
+  }
+}
+
